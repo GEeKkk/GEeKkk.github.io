@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Muduo定时器 - BiteByte</title><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="manifest" href="/site.webmanifest">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<meta property="og:description" content="" />
+	<meta name="twitter:description" content="" />
+	<meta name="description" content="" />
+	<meta name="description" content="" />
+
+	<meta property="og:title" content="Muduo定时器 | BiteByte" />
+	<meta name="twitter:title" content="Muduo定时器 | BiteByte" />
+
+	<meta property="og:image" content=""/>
+	<meta itemprop="name" content="Muduo定时器 | BiteByte" />
+	<meta name="application-name" content="Muduo定时器 | BiteByte" />
+	<meta property="og:site_name" content="" />
+	<meta property="og:title" content="Muduo定时器" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://geekkk.github.io/post/articles/muduo_timer/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2021-03-21T20:04:26&#43;08:00" />
+<meta property="article:modified_time" content="2021-03-21T20:04:26&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Muduo定时器"/>
+<meta name="twitter:description" content=""/>
+<script src="https://geekkk.github.io/js/feather.min.js"></script>
+	
+	<link href="https://geekkk.github.io/css/fonts.css" rel="stylesheet">
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://geekkk.github.io/css/main.css" />
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://geekkk.github.io/">BiteByte</a>
+	</div>
+	<nav>
+		
+		<a href="/post">文章列表</a>
+		
+		<a href="/tags">标签</a>
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">Muduo定时器</h1>
+		</div>
+		
+
+		<section class="body">
+			<p>muduo定时器主要是由三个类组成，配合IO Multiplex监听linux的API timerfd，达到定时器的目的。</p>
+<ul>
+<li>timerfd_create</li>
+<li>timerfd_settime</li>
+</ul>
+<p><code>timerfd_create</code>用来创建一个新的定时器对象，<code>timerfd_settime</code>用来启动一个定时器。<br>
+通过使用IO Multiplex函数(epoll/poll/select)监听timerfd上的事件。<br>
+当达到定时时间，timerfd发生可读事件，epoll等函数监听到后，调用<code>read</code>先读取出来，防止重复触发，
+再调用注册的回调函数达到定时执行的效果。</p>
+<ul>
+<li>Timer</li>
+<li>TimerQueue</li>
+<li>TimerId</li>
+</ul>
+<h2 id="timer类">Timer类</h2>
+<p>主要是封装了回调函数和定时的时间戳</p>
+<h2 id="timerqueue类">TimerQueue类</h2>
+<p>使用了排序的二叉搜索树(stl set)来组织定时器，把Timer按到期时间先后排序，便于将到期定时器从树中删除。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">TimerId TimerQueue<span style="color:#f92672">::</span>addTimer(<span style="color:#66d9ef">const</span> TimerCallback<span style="color:#f92672">&amp;</span> cb,
+                             Timestamp when,
+                             <span style="color:#66d9ef">double</span> interval)
+{
+  Timer<span style="color:#f92672">*</span> timer <span style="color:#f92672">=</span> <span style="color:#66d9ef">new</span> Timer(cb, when, interval);
+  loop_<span style="color:#f92672">-&gt;</span>assertInLoopThread();
+  <span style="color:#66d9ef">bool</span> earliestChanged <span style="color:#f92672">=</span> insert(timer);
+
+  <span style="color:#66d9ef">if</span> (earliestChanged)
+  {
+    resetTimerfd(timerfd_, timer<span style="color:#f92672">-&gt;</span>expiration());
+  }
+  <span style="color:#66d9ef">return</span> <span style="color:#a6e22e">TimerId</span>(timer);
+}
+<span style="color:#960050;background-color:#1e0010">@</span>cb <span style="color:#960050;background-color:#1e0010">到期执行的函数</span>
+<span style="color:#960050;background-color:#1e0010">@</span>when <span style="color:#960050;background-color:#1e0010">到期时间</span>
+<span style="color:#960050;background-color:#1e0010">@</span>interval <span style="color:#960050;background-color:#1e0010">间隔时间</span>
+
+<span style="color:#960050;background-color:#1e0010">首先创建一个定时器，如果该定时器比定时器队列中任何一个都要早，则需要启动该定时器。</span>
+<span style="color:#960050;background-color:#1e0010">例如先创建了一个</span><span style="color:#ae81ff">5</span>s定时器插入set<span style="color:#960050;background-color:#1e0010">，接着插入一个</span><span style="color:#ae81ff">2</span>s定时器<span style="color:#960050;background-color:#1e0010">，如果不事先启动</span><span style="color:#ae81ff">2</span>s的定时器<span style="color:#960050;background-color:#1e0010">，</span>
+<span style="color:#960050;background-color:#1e0010">那只有等</span><span style="color:#ae81ff">5</span>s定时器执行完后才能执行2s的<span style="color:#960050;background-color:#1e0010">，显然不符合预期。</span>
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> TimerQueue<span style="color:#f92672">::</span>handleRead()
+{
+  loop_<span style="color:#f92672">-&gt;</span>assertInLoopThread();
+  Timestamp <span style="color:#a6e22e">now</span>(Timestamp<span style="color:#f92672">::</span>now());
+  readTimerfd(timerfd_, now);
+
+  std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Entry<span style="color:#f92672">&gt;</span> expired <span style="color:#f92672">=</span> getExpired(now);
+
+  <span style="color:#75715e">// safe to callback outside critical section
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">for</span> (std<span style="color:#f92672">::</span>vector<span style="color:#f92672">&lt;</span>Entry<span style="color:#f92672">&gt;::</span>iterator it <span style="color:#f92672">=</span> expired.begin();
+      it <span style="color:#f92672">!=</span> expired.end(); <span style="color:#f92672">++</span>it)
+  {
+    it<span style="color:#f92672">-&gt;</span>second<span style="color:#f92672">-&gt;</span>run();
+  }
+
+  reset(expired, now);
+}
+<span style="color:#960050;background-color:#1e0010">该函数为</span>timerfd的配套回调函数<span style="color:#960050;background-color:#1e0010">，注册在</span>Channel里<span style="color:#960050;background-color:#1e0010">，</span>(Channel用来管理文件描述符的事件分发)<span style="color:#960050;background-color:#1e0010">。</span>
+<span style="color:#960050;background-color:#1e0010">当</span>timerfd上有事件发生时<span style="color:#960050;background-color:#1e0010">，</span>EventLoop会回调注册在Channel里的handleRead函数<span style="color:#960050;background-color:#1e0010">。</span>
+<span style="color:#960050;background-color:#1e0010">先读取</span>timerfd上的数据<span style="color:#960050;background-color:#1e0010">，以免重复触发。然后取出一批到期的</span>Timer<span style="color:#960050;background-color:#1e0010">，依次执行注册在</span>Timer里的回调函数<span style="color:#960050;background-color:#1e0010">。</span>
+<span style="color:#960050;background-color:#1e0010">然后重置这批到期定时器。</span>  
+muduo实现了两种定时器接口<span style="color:#960050;background-color:#1e0010">，一种是`</span>runAfter<span style="color:#960050;background-color:#1e0010">`，意为在</span>n秒后执行<span style="color:#960050;background-color:#1e0010">；另一种是`</span>runEvery<span style="color:#960050;background-color:#1e0010">`，</span>  
+<span style="color:#960050;background-color:#1e0010">意为每</span>n秒执行一次<span style="color:#960050;background-color:#1e0010">。</span>
+<span style="color:#960050;background-color:#1e0010">重置的意义就是当定时器到期时，如果是第二种需求，就需要重置到期时间，再重新加入到定时器队列中。</span>
+</code></pre></div>
+		</section>
+
+		<div class="meta">Posted on Mar 21, 2021</div>
+
+		<div class="post-tags">
+			
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+<hr><a class="soc" href="https://github.com/geekkk" title="GitHub"><i data-feather="github"></i></a>|⚡️
+	2021  © PeakLu |  <a href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+</footer>
+
+
+<script>
+      feather.replace()
+</script></div>
+    </body>
+</html>

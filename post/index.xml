@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>About Me on BiteByte</title>
+    <link>https://geekkk.github.io/post/</link>
+    <description>Recent content in About Me on BiteByte</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>zh-CN</language>
+    <copyright>© PeakLu</copyright>
+    <lastBuildDate>Thu, 14 Jan 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://geekkk.github.io/post/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>LinkedList</title>
+      <link>https://geekkk.github.io/post/articles/goodtaste/</link>
+      <pubDate>Mon, 05 Apr 2021 18:21:55 +0800</pubDate>
+      
+      <guid>https://geekkk.github.io/post/articles/goodtaste/</guid>
+      <description>传统删除链表节点
+struct ListNode { int val; ListNode* next; ListNode(int x) : val(x), next(nullptr) {} }; // 无返回值 void RemoveEntry(ListNode* head, int val) { if (head == nullptr) { return; } auto dummy = new ListNode(-1); auto pre = dummy; auto cur = head; while (cur) { if (cur-&amp;gt;val == val) { pre-&amp;gt;next = cur-&amp;gt;next; break; } pre = pre-&amp;gt;next; cur = cur-&amp;gt;next; } } Linus&amp;rsquo;s Good taste
+void RemoveEntry(ListNode* head, int val) { ListNode** p = &amp;amp;head; ListNode* del; while (*p &amp;amp;&amp;amp; (*p)-&amp;gt;val !</description>
+    </item>
+    
+    <item>
+      <title>Muduo的Reactor模型</title>
+      <link>https://geekkk.github.io/post/articles/muduo_reactor/</link>
+      <pubDate>Sun, 21 Mar 2021 20:54:50 +0800</pubDate>
+      
+      <guid>https://geekkk.github.io/post/articles/muduo_reactor/</guid>
+      <description>三大结构
+ EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex，
+EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
+void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&amp;gt;poll(kPollTimeMs, &amp;amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); ++it) { (*it)-&amp;gt;handleEvent(); } } LOG_TRACE &amp;lt;&amp;lt; &amp;#34;EventLoop &amp;#34; &amp;lt;&amp;lt; this &amp;lt;&amp;lt; &amp;#34; stop looping&amp;#34;; looping_ = false; } Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。
+class Channel { private: void update(); static const int kNoneEvent; static const int kReadEvent; static const int kWriteEvent; EventLoop* loop_; // 事件循环  const int fd_; int events_; int revents_; int index_; // used by Poller.</description>
+    </item>
+    
+    <item>
+      <title>Muduo定时器</title>
+      <link>https://geekkk.github.io/post/articles/muduo_timer/</link>
+      <pubDate>Sun, 21 Mar 2021 20:04:26 +0800</pubDate>
+      
+      <guid>https://geekkk.github.io/post/articles/muduo_timer/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>使用条件变量实现Golang中的WaitGroup</title>
+      <link>https://geekkk.github.io/post/articles/test/</link>
+      <pubDate>Wed, 10 Mar 2021 20:28:21 +0800</pubDate>
+      
+      <guid>https://geekkk.github.io/post/articles/test/</guid>
+      <description>这里使用条件变量的典型应用了 一般的条件变量的使用
+deque&amp;lt;T&amp;gt; queue_; mutex mu_; condition_variable cond_; void Decode() { lock(); // 这里使用while而不是if的原因是： // 虚假唤醒 // 多处理器系统下wait的线程有可能在没有notify唤醒的情形下苏醒并执行。 // 需要由调用者再定义一个循环判断是否真正满足继续运行的要求， // 如果不是，则继续进入wait状态 while (condition) { cond_.wait(); } queue_.pop_front(); unlock(); } void Encode() { lock(); queue_.push_back(x); cond_.notifyOne(); //通知等待的线程， unlock(); } int count_; std::mutex mu_; std::condition_variable cond_; void Wait() { std::unique_lock&amp;lt;std::mutex&amp;gt; lock(mu_); while (count_ &amp;gt; 0) { cond_.wait(lock); } } void Done() { std::unique_lock&amp;lt;std::mutex&amp;gt; lock(mu_); --count_; if (count_ == 0) { cond_.notify_all();// 这里使用nofify_all不用notify_one的原因 } } 在线程A释放锁，进入cond_wait条件之前，线程B获取了锁，重置了condition，发送signal通知， 这是A还未进入cond_wait条件，因此会丢掉这一通知， </description>
+    </item>
+    
+  </channel>
+</rss>

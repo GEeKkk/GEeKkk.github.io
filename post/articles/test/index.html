@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>使用条件变量实现Golang中的WaitGroup - BiteByte</title><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<link rel="manifest" href="/site.webmanifest">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+
+	<meta property="og:description" content="" />
+	<meta name="twitter:description" content="" />
+	<meta name="description" content="" />
+	<meta name="description" content="" />
+
+	<meta property="og:title" content="使用条件变量实现Golang中的WaitGroup | BiteByte" />
+	<meta name="twitter:title" content="使用条件变量实现Golang中的WaitGroup | BiteByte" />
+
+	<meta property="og:image" content=""/>
+	<meta itemprop="name" content="使用条件变量实现Golang中的WaitGroup | BiteByte" />
+	<meta name="application-name" content="使用条件变量实现Golang中的WaitGroup | BiteByte" />
+	<meta property="og:site_name" content="" />
+	<meta property="og:title" content="使用条件变量实现Golang中的WaitGroup" />
+<meta property="og:description" content="这里使用条件变量的典型应用了 一般的条件变量的使用
+deque&lt;T&gt; queue_; mutex mu_; condition_variable cond_; void Decode() { lock(); // 这里使用while而不是if的原因是： // 虚假唤醒 // 多处理器系统下wait的线程有可能在没有notify唤醒的情形下苏醒并执行。 // 需要由调用者再定义一个循环判断是否真正满足继续运行的要求， // 如果不是，则继续进入wait状态 while (condition) { cond_.wait(); } queue_.pop_front(); unlock(); } void Encode() { lock(); queue_.push_back(x); cond_.notifyOne(); //通知等待的线程， unlock(); } int count_; std::mutex mu_; std::condition_variable cond_; void Wait() { std::unique_lock&lt;std::mutex&gt; lock(mu_); while (count_ &gt; 0) { cond_.wait(lock); } } void Done() { std::unique_lock&lt;std::mutex&gt; lock(mu_); --count_; if (count_ == 0) { cond_.notify_all();// 这里使用nofify_all不用notify_one的原因 } } 在线程A释放锁，进入cond_wait条件之前，线程B获取了锁，重置了condition，发送signal通知， 这是A还未进入cond_wait条件，因此会丢掉这一通知， " />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://geekkk.github.io/post/articles/test/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2021-03-10T20:28:21&#43;08:00" />
+<meta property="article:modified_time" content="2021-03-10T20:28:21&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="使用条件变量实现Golang中的WaitGroup"/>
+<meta name="twitter:description" content="这里使用条件变量的典型应用了 一般的条件变量的使用
+deque&lt;T&gt; queue_; mutex mu_; condition_variable cond_; void Decode() { lock(); // 这里使用while而不是if的原因是： // 虚假唤醒 // 多处理器系统下wait的线程有可能在没有notify唤醒的情形下苏醒并执行。 // 需要由调用者再定义一个循环判断是否真正满足继续运行的要求， // 如果不是，则继续进入wait状态 while (condition) { cond_.wait(); } queue_.pop_front(); unlock(); } void Encode() { lock(); queue_.push_back(x); cond_.notifyOne(); //通知等待的线程， unlock(); } int count_; std::mutex mu_; std::condition_variable cond_; void Wait() { std::unique_lock&lt;std::mutex&gt; lock(mu_); while (count_ &gt; 0) { cond_.wait(lock); } } void Done() { std::unique_lock&lt;std::mutex&gt; lock(mu_); --count_; if (count_ == 0) { cond_.notify_all();// 这里使用nofify_all不用notify_one的原因 } } 在线程A释放锁，进入cond_wait条件之前，线程B获取了锁，重置了condition，发送signal通知， 这是A还未进入cond_wait条件，因此会丢掉这一通知， "/>
+<script src="https://geekkk.github.io/js/feather.min.js"></script>
+	
+	<link href="https://geekkk.github.io/css/fonts.css" rel="stylesheet">
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://geekkk.github.io/css/main.css" />
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://geekkk.github.io/">BiteByte</a>
+	</div>
+	<nav>
+		
+		<a href="/post">文章列表</a>
+		
+		<a href="/tags">标签</a>
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">使用条件变量实现Golang中的WaitGroup</h1>
+		</div>
+		
+
+		<section class="body">
+			<p>这里使用条件变量的典型应用了
+一般的条件变量的使用</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">deque&lt;T&gt; queue_;
+mutex mu_;
+condition_variable cond_;
+
+void Decode() {
+    lock();
+    // 这里使用while而不是if的原因是：
+    // 虚假唤醒
+    // 多处理器系统下wait的线程有可能在没有notify唤醒的情形下苏醒并执行。
+    // 需要由调用者再定义一个循环判断是否真正满足继续运行的要求，
+    // 如果不是，则继续进入wait状态
+    while (condition) {
+        cond_.wait();
+    }
+    queue_.pop_front();
+    unlock();
+}
+
+void Encode() {
+    lock();
+    queue_.push_back(x);
+    cond_.notifyOne(); //通知等待的线程，
+    unlock();
+}
+
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">int count_;
+std::mutex mu_;
+std::condition_variable cond_;
+
+void Wait() {
+    std::unique_lock&lt;std::mutex&gt; lock(mu_);
+    while (count_ &gt; 0) {
+        cond_.wait(lock);
+    }
+}
+
+void Done() {
+    std::unique_lock&lt;std::mutex&gt; lock(mu_);
+    --count_;
+    if (count_ == 0) {
+        cond_.notify_all();// 这里使用nofify_all不用notify_one的原因
+    }
+}
+
+在线程A释放锁，进入cond_wait条件之前，线程B获取了锁，重置了condition，发送signal通知，
+这是A还未进入cond_wait条件，因此会丢掉这一通知，
+</code></pre></div>
+		</section>
+
+		<div class="meta">Posted on Mar 10, 2021</div>
+
+		<div class="post-tags">
+			
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+<hr><a class="soc" href="https://github.com/geekkk" title="GitHub"><i data-feather="github"></i></a>|⚡️
+	2021  © PeakLu |  <a href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+</footer>
+
+
+<script>
+      feather.replace()
+</script></div>
+    </body>
+</html>
