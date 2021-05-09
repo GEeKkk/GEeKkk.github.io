@@ -7,7 +7,23 @@
     <generator>Hugo -- gohugo.io</generator>
     <language>zh-CN</language>
     <copyright>© PeakLu</copyright>
-    <lastBuildDate>Mon, 05 Apr 2021 18:21:55 +0800</lastBuildDate><atom:link href="https://geekkk.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 09 May 2021 19:45:29 +0800</lastBuildDate><atom:link href="https://geekkk.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Muduo的异步日志</title>
+      <link>https://geekkk.github.io/post/articles/muduo_log/</link>
+      <pubDate>Sun, 09 May 2021 19:45:29 +0800</pubDate>
+      
+      <guid>https://geekkk.github.io/post/articles/muduo_log/</guid>
+      <description>在前司也实现过一个异步日志方案，今天参看了muduo的代码，设计思想予以记录。
+异步日志设计 我们知道，磁盘I/O对性能有影响。如果调用一次LOG_DEBUG就进行一次刷盘，效率无疑是低下的。
+相比于磁盘I/O，内存的I/O是很快的。 因此可以将需要刷盘的内容先缓存起来，在到达某个条件时，一次性写入磁盘。
+由此出发，异步日志一般分为前后端，前端为调用端，后端为刷盘端。
+大体来讲，这还是一个生产者-消费者模式的原型。
+前端（调用端）将日志写入内存buffer中，然后通知后端进行消费（刷盘）刷盘。
+考虑到在多线程环境下，还需要对临界区进行加锁，否则会出现race condition。
+写入日志到缓冲区 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30  // 伪代码 - 生产者 // 所有日志都往curBuffer_指向的buffer中写 curBuffer_; // 备用buffer，当curBuffer_不够用时，将curBuffer_指向 // 此buffer backupBuffer_; // 存储已满的buffer buffers_; void append(log, log_len) { lockguard(); // 临界区  // 当前缓冲可用空间大于日志长度，直接append  if (curBuffer_-&amp;gt;avail() &amp;gt; log_len) { curBuffer_-&amp;gt;append(log, log_len); } else { // 将当前buffer移动到buffer池里  buffers_.</description>
+    </item>
+    
     <item>
       <title>LinkedList</title>
       <link>https://geekkk.github.io/post/articles/goodtaste/</link>
@@ -15,8 +31,7 @@
       
       <guid>https://geekkk.github.io/post/articles/goodtaste/</guid>
       <description>传统删除链表节点
-struct ListNode { int val; ListNode* next; ListNode(int x) : val(x), next(nullptr) {} }; // 无返回值 void RemoveEntry(ListNode* head, int val) { if (head == nullptr) { return; } auto dummy = new ListNode(-1); auto pre = dummy; auto cur = head; while (cur) { if (cur-&amp;gt;val == val) { pre-&amp;gt;next = cur-&amp;gt;next; break; } pre = pre-&amp;gt;next; cur = cur-&amp;gt;next; } } Linus&amp;rsquo;s Good taste
-void RemoveEntry(ListNode* head, int val) { ListNode** p = &amp;amp;head; ListNode* del; while (*p &amp;amp;&amp;amp; (*p)-&amp;gt;val !</description>
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24  struct ListNode { int val; ListNode* next; ListNode(int x) : val(x), next(nullptr) {} }; // 无返回值 void RemoveEntry(ListNode* head, int val) { if (head == nullptr) { return; } auto dummy = new ListNode(-1); auto pre = dummy; auto cur = head; while (cur) { if (cur-&amp;gt;val == val) { pre-&amp;gt;next = cur-&amp;gt;next; break; } pre = pre-&amp;gt;next; cur = cur-&amp;gt;next; } }   Linus&amp;rsquo;s Good taste</description>
     </item>
     
     <item>
@@ -25,11 +40,8 @@ void RemoveEntry(ListNode* head, int val) { ListNode** p = &amp;amp;head; ListNo
       <pubDate>Sun, 21 Mar 2021 20:54:50 +0800</pubDate>
       
       <guid>https://geekkk.github.io/post/articles/muduo_reactor/</guid>
-      <description>三大结构
- EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex，
-EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
-void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&amp;gt;poll(kPollTimeMs, &amp;amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); ++it) { (*it)-&amp;gt;handleEvent(); } } LOG_TRACE &amp;lt;&amp;lt; &amp;#34;EventLoop &amp;#34; &amp;lt;&amp;lt; this &amp;lt;&amp;lt; &amp;#34; stop looping&amp;#34;; looping_ = false; } Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。
-class Channel { private: void update(); static const int kNoneEvent; static const int kReadEvent; static const int kWriteEvent; EventLoop* loop_; // 事件循环  const int fd_; int events_; int revents_; int index_; // used by Poller.</description>
+      <description>三大结构  EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex， EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21  void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&amp;gt;poll(kPollTimeMs, &amp;amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); ++it) { (*it)-&amp;gt;handleEvent(); } } LOG_TRACE &amp;lt;&amp;lt; &amp;#34;EventLoop &amp;#34; &amp;lt;&amp;lt; this &amp;lt;&amp;lt; &amp;#34; stop looping&amp;#34;; looping_ = false; }   Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。</description>
     </item>
     
     <item>
@@ -48,7 +60,7 @@ class Channel { private: void update(); static const int kNoneEvent; static cons
       
       <guid>https://geekkk.github.io/post/articles/test/</guid>
       <description>这里使用条件变量的典型应用了 一般的条件变量的使用
-deque&amp;lt;T&amp;gt; queue_; mutex mu_; condition_variable cond_; void Decode() { lock(); // 这里使用while而不是if的原因是： // 虚假唤醒 // 多处理器系统下wait的线程有可能在没有notify唤醒的情形下苏醒并执行。 // 需要由调用者再定义一个循环判断是否真正满足继续运行的要求， // 如果不是，则继续进入wait状态 while (condition) { cond_.wait(); } queue_.pop_front(); unlock(); } void Encode() { lock(); queue_.push_back(x); cond_.notifyOne(); //通知等待的线程， unlock(); } int count_; std::mutex mu_; std::condition_variable cond_; void Wait() { std::unique_lock&amp;lt;std::mutex&amp;gt; lock(mu_); while (count_ &amp;gt; 0) { cond_.wait(lock); } } void Done() { std::unique_lock&amp;lt;std::mutex&amp;gt; lock(mu_); --count_; if (count_ == 0) { cond_.notify_all();// 这里使用nofify_all不用notify_one的原因 } } 在线程A释放锁，进入cond_wait条件之前，线程B获取了锁，重置了condition，发送signal通知， 这是A还未进入cond_wait条件，因此会丢掉这一通知， </description>
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25  deque&amp;lt;T&amp;gt; queue_; mutex mu_; condition_variable cond_; void Decode() { lock(); // 这里使用while而不是if的原因是： // 虚假唤醒 // 多处理器系统下wait的线程有可能在没有notify唤醒的情形下苏醒并执行。 // 需要由调用者再定义一个循环判断是否真正满足继续运行的要求， // 如果不是，则继续进入wait状态 while (condition) { cond_.wait(); } queue_.pop_front(); unlock(); } void Encode() { lock(); queue_.push_back(x); cond_.notifyOne(); //通知等待的线程， unlock(); }   1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21  int count_; std::mutex mu_; std::condition_variable cond_; void Wait() { std::unique_lock&amp;lt;std::mutex&amp;gt; lock(mu_); while (count_ &amp;gt; 0) { cond_.</description>
     </item>
     
   </channel>

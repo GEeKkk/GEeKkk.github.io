@@ -14,11 +14,8 @@
       <pubDate>Sun, 21 Mar 2021 20:54:50 +0800</pubDate>
       
       <guid>https://geekkk.github.io/post/articles/muduo_reactor/</guid>
-      <description>三大结构
- EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex，
-EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
-void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&amp;gt;poll(kPollTimeMs, &amp;amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); ++it) { (*it)-&amp;gt;handleEvent(); } } LOG_TRACE &amp;lt;&amp;lt; &amp;#34;EventLoop &amp;#34; &amp;lt;&amp;lt; this &amp;lt;&amp;lt; &amp;#34; stop looping&amp;#34;; looping_ = false; } Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。
-class Channel { private: void update(); static const int kNoneEvent; static const int kReadEvent; static const int kWriteEvent; EventLoop* loop_; // 事件循环  const int fd_; int events_; int revents_; int index_; // used by Poller.</description>
+      <description>三大结构  EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex， EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21  void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&amp;gt;poll(kPollTimeMs, &amp;amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); ++it) { (*it)-&amp;gt;handleEvent(); } } LOG_TRACE &amp;lt;&amp;lt; &amp;#34;EventLoop &amp;#34; &amp;lt;&amp;lt; this &amp;lt;&amp;lt; &amp;#34; stop looping&amp;#34;; looping_ = false; }   Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。</description>
     </item>
     
   </channel>

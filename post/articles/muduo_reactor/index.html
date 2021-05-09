@@ -21,11 +21,8 @@
 	<meta name="application-name" content="Muduo的Reactor模型 | BiteByte" />
 	<meta property="og:site_name" content="" />
 	<meta property="og:title" content="Muduo的Reactor模型" />
-<meta property="og:description" content="三大结构
- EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex，
-EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
-void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&gt;poll(kPollTimeMs, &amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); &#43;&#43;it) { (*it)-&gt;handleEvent(); } } LOG_TRACE &lt;&lt; &#34;EventLoop &#34; &lt;&lt; this &lt;&lt; &#34; stop looping&#34;; looping_ = false; } Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。
-class Channel { private: void update(); static const int kNoneEvent; static const int kReadEvent; static const int kWriteEvent; EventLoop* loop_; // 事件循环  const int fd_; int events_; int revents_; int index_; // used by Poller." />
+<meta property="og:description" content="三大结构  EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex， EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21  void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&gt;poll(kPollTimeMs, &amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); &#43;&#43;it) { (*it)-&gt;handleEvent(); } } LOG_TRACE &lt;&lt; &#34;EventLoop &#34; &lt;&lt; this &lt;&lt; &#34; stop looping&#34;; looping_ = false; }   Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。" />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://geekkk.github.io/post/articles/muduo_reactor/" /><meta property="article:section" content="post" />
 <meta property="article:published_time" content="2021-03-21T20:54:50&#43;08:00" />
@@ -33,11 +30,8 @@ class Channel { private: void update(); static const int kNoneEvent; static cons
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="Muduo的Reactor模型"/>
-<meta name="twitter:description" content="三大结构
- EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex，
-EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
-void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&gt;poll(kPollTimeMs, &amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); &#43;&#43;it) { (*it)-&gt;handleEvent(); } } LOG_TRACE &lt;&lt; &#34;EventLoop &#34; &lt;&lt; this &lt;&lt; &#34; stop looping&#34;; looping_ = false; } Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。
-class Channel { private: void update(); static const int kNoneEvent; static const int kReadEvent; static const int kWriteEvent; EventLoop* loop_; // 事件循环  const int fd_; int events_; int revents_; int index_; // used by Poller."/>
+<meta name="twitter:description" content="三大结构  EventLoop Channel Poller  EventLoop 事件循环的主结构，主要是维护一个IO Multiplex， EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21  void EventLoop::loop() { assert(!looping_); assertInLoopThread(); looping_ = true; quit_ = false; while (!quit_) { activeChannels_.clear(); pollReturnTime_ = poller_-&gt;poll(kPollTimeMs, &amp;activeChannels_); for (ChannelList::iterator it = activeChannels_.begin(); it != activeChannels_.end(); &#43;&#43;it) { (*it)-&gt;handleEvent(); } } LOG_TRACE &lt;&lt; &#34;EventLoop &#34; &lt;&lt; this &lt;&lt; &#34; stop looping&#34;; looping_ = false; }   Channel Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。"/>
 <script src="https://geekkk.github.io/js/feather.min.js"></script>
 	
 	<link href="https://geekkk.github.io/css/fonts.css" rel="stylesheet">
@@ -67,17 +61,41 @@ class Channel { private: void update(); static const int kNoneEvent; static cons
 		
 
 		<section class="body">
-			<!-- pagebreak -->
-<p>三大结构</p>
+			<h2 id="三大结构">三大结构</h2>
 <ul>
-<li>EventLoop</li>
-<li>Channel</li>
-<li>Poller</li>
+<li><code>EventLoop</code></li>
+<li><code>Channel</code></li>
+<li><code>Poller</code></li>
 </ul>
 <h2 id="eventloop">EventLoop</h2>
-<p>事件循环的主结构，主要是维护一个IO Multiplex，<br>
+<p>事件循环的主结构，主要是维护一个IO Multiplex，
 EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理函数进行处理。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> EventLoop<span style="color:#f92672">::</span>loop()
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">void</span> EventLoop<span style="color:#f92672">::</span>loop()
 {
   assert(<span style="color:#f92672">!</span>looping_);
   assertInLoopThread();
@@ -98,9 +116,35 @@ EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理
   LOG_TRACE <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34;EventLoop &#34;</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#66d9ef">this</span> <span style="color:#f92672">&lt;&lt;</span> <span style="color:#e6db74">&#34; stop looping&#34;</span>;
   looping_ <span style="color:#f92672">=</span> false;
 }
-</code></pre></div><h2 id="channel">Channel</h2>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="channel">Channel</h2>
 <p>Channel负责管理该fd，fd及其一系列处理函数都注册在该Channel类。</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Channel</span>
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++"><span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Channel</span>
 {
 
  <span style="color:#66d9ef">private</span><span style="color:#f92672">:</span>
@@ -120,10 +164,31 @@ EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理
   EventCallback writeCallback_;
   EventCallback errorCallback_;
 };
-</code></pre></div><h2 id="poller">Poller</h2>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="poller">Poller</h2>
 <p>主要是IO Multiplexing的封装。<br>
 监听fd上的事件并收集，返回给IO线程(EventLoop所在线程)，在IO线程进行处理</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">Timestamp Poller<span style="color:#f92672">::</span>poll(<span style="color:#66d9ef">int</span> timeoutMs, ChannelList<span style="color:#f92672">*</span> activeChannels)
+<div class="highlight"><div style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:auto;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15
+</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;;width:100%">
+<pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c++" data-lang="c++">Timestamp Poller<span style="color:#f92672">::</span>poll(<span style="color:#66d9ef">int</span> timeoutMs, ChannelList<span style="color:#f92672">*</span> activeChannels)
 {
   <span style="color:#75715e">// XXX pollfds_ shouldn&#39;t change
 </span><span style="color:#75715e"></span>  <span style="color:#66d9ef">int</span> numEvents <span style="color:#f92672">=</span> <span style="color:#f92672">::</span>poll(<span style="color:#f92672">&amp;*</span>pollfds_.begin(), pollfds_.size(), timeoutMs);
@@ -138,7 +203,9 @@ EventLoop循环检测描述符上是否有事件发生，调用活跃fd的处理
   }
   <span style="color:#66d9ef">return</span> now;
 }
-</code></pre></div><h2 id="事件循环过程">事件循环过程</h2>
+</code></pre></td></tr></table>
+</div>
+</div><h2 id="事件循环过程">事件循环过程</h2>
 <ul>
 <li>定义一个EventLoop</li>
 <li>将EventLoop和感兴趣的fd注册到Channel中</li>
